@@ -1,0 +1,43 @@
+# Configuration de mba-hunter.
+# Les secrets (clés API, token Telegram) passent par des variables d'environnement, voir .env.example.
+
+ebay:
+  marketplace: EBAY_FR
+  query: "MacBook Air M2 13"
+  category_ids: "111422"        # Apple > Ordinateurs portables
+  buying_options: AUCTION       # enchères uniquement
+  sort: endingSoonest
+  limit: 100                    # résultats par page (max 200)
+  max_pages: 2
+  fetch_details: true           # récupère la description complète (1 appel par annonce retenue)
+  sandbox: false
+
+filters:
+  max_price: 650                # EUR — enchère actuelle (+ port si include_shipping) à ne pas dépasser
+  include_shipping: true
+  min_hours_left: 1             # ignore les enchères qui se terminent trop tôt pour agir
+  # Expressions régulières, insensibles à la casse.
+  required_patterns:
+    - '\bm2\b'
+    - '\bair\b'
+  excluded_patterns:
+    - '\bm1\b'
+    - '\bm3\b'
+    - '\bm4\b'
+    - '\b15\s*(")?\s*(pouces|inch|")'
+    - '\b15[,.]3'
+    - '\bpi[eè]ces?\b'
+    - '\bhs\b'
+    - 'for parts'
+    - 'pour pi[eè]ces'
+    - 'bo[iî]te vide'
+    - '\b(coque|housse|chargeur seul|clavier seul)\b'
+
+claude:
+  model: claude-opus-5-5
+  effort: medium                # low | medium | high | xhigh | max
+  max_analyses_per_run: 25      # garde-fou sur le coût
+  min_score_to_notify: 50       # 0-100
+
+database:
+  path: data/mba_hunter.db

@@ -1,0 +1,64 @@
+name: mba-hunter
+
+on:
+  schedule:
+    - cron: "0 6 * * *"      # recherche quotidienne (08:00 Paris en été, 07:00 en hiver)
+    - cron: "30 */4 * * *"   # traitement des boutons Telegram (getUpdates ne garde les clics que 24 h)
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Commande à lancer"
+        type: choice
+        options: [run, callbacks]
+        default: run
+
+permissions:
+  contents: write            # pour recommiter la base SQLite
+
+concurrency:
+  group: mba-hunter
+  cancel-in-progress: false
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Lancer mba-hunter
+        env:
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            CMD="${{ inputs.command }}"
+          elif [ "${{ github.event.schedule }}" = "0 6 * * *" ]; then
+            CMD=run
+          else
+            CMD=callbacks
+          fi
+          python -m mba_hunter "$CMD"
+
+      - name: Sauvegarder la base SQLite
+        if: always()
+        run: |
+          git config user.name "mba-hunter[bot]"
+          git config user.email "mba-hunter[bot]@users.noreply.github.com"
+          [ -f data/mba_hunter.db ] && git add data/mba_hunter.db
+          if git diff --cached --quiet; then
+            echo "Base inchangée"
+          else
+            git commit -m "chore: mise à jour de la base [skip ci]"
+            git push
+          fi
