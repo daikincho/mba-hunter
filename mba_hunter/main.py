@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -110,12 +110,56 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
              len(listings), known, sum(rejected.values()), analyzed, errors, notified)
 
 
+def short_id(item_id: str) -> str:
+    """v1|336854225095|0 -> 336854225095 (la partie utile pour `forget`)."""
+    parts = item_id.split("|")
+    return parts[1] if len(parts) > 1 else item_id
+
+
+def print_listings(rows: List[Dict[str, Any]]) -> None:
+    if not rows:
+        print("Aucune annonce en base.")
+        return
+    print(f"{'ID':<13} {'STATUT':<10} {'PRIX':>8} {'SCORE':>5} {'MAX':>8}  {'FIN (UTC)':<16}  TITRE")
+    for r in rows:
+        score = "-" if r["score"] is None else r["score"]
+        prix_max = "-" if r["prix_max"] is None else f"{r['prix_max']:.0f} €"
+        fin = (r["end_date"] or "?")[:16].replace("T", " ")
+        print(f"{short_id(r['item_id']):<13} {r['status']:<10} {r['current_price']:>6.0f} € {score:>5} "
+              f"{prix_max:>8}  {fin:<16}  {r['title'][:50]}")
+    print(f"\n{len(rows)} annonce(s).")
+
+
+def forget(db: Database, targets: List[str], everything: bool) -> int:
+    """Retire des annonces de la base : elles seront traitées comme nouvelles au prochain `run`."""
+    if everything:
+        ids = [r["item_id"] for r in db.list_listings()]
+    else:
+        ids = []
+        for target in targets:
+            found = db.find_ids(target)
+            if not found:
+                print(f"Introuvable : {target}")
+            ids.extend(found)
+    ids = list(dict.fromkeys(ids))
+    if not ids:
+        print("Rien à supprimer.")
+        return 1
+    print(f"{db.delete(ids)} annonce(s) supprimée(s) de la base.")
+    return 0
+
+
 def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(prog="mba_hunter", description="Chasse aux MacBook Air M2 sur eBay")
-    parser.add_argument("command", choices=["run", "callbacks", "listen"], help=(
+    parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget"], help=(
         "run : traite les clics Telegram en attente puis lance la recherche ; "
-        "callbacks : traite uniquement les clics ; listen : écoute les clics en continu"
+        "callbacks : traite uniquement les clics ; listen : écoute les clics en continu ; "
+        "list : affiche les annonces en base ; forget ID… : retire des annonces de la base"
     ))
+    parser.add_argument("targets", nargs="*", metavar="ID", help="forget : identifiant(s) d'annonce (voir `list`)")
+    parser.add_argument("--all", action="store_true", dest="everything", help="forget : supprime toutes les annonces")
+    parser.add_argument("--status", choices=["notified", "validated", "refused", "skipped", "error"],
+                        help="list : n'affiche que ce statut")
     parser.add_argument("--config", help="chemin du fichier config.yaml")
     parser.add_argument("--dry-run", action="store_true", help="affiche les notifications au lieu de les envoyer")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -130,6 +174,14 @@ def main(argv: Optional[list] = None) -> int:
     config = load_config(args.config)
     db = open_db(config)
     try:
+        if args.command == "list":
+            print_listings(db.list_listings(args.status))
+            return 0
+        if args.command == "forget":
+            if not args.targets and not args.everything:
+                parser.error("forget : indique au moins un ID (voir `list`) ou --all")
+            return forget(db, args.targets, args.everything)
+
         bot = None
         if not (args.dry_run and args.command == "run"):
             secrets = load_secrets(need_ebay=False)

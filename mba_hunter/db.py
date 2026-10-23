@@ -4,7 +4,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from .analyzer import Analysis
 from .ebay import Listing
@@ -67,6 +67,25 @@ class Database:
         """Vrai si l'annonce a déjà été traitée (les erreurs sont retentées)."""
         row = self.get(item_id)
         return row is not None and row["status"] != "error"
+
+    def list_listings(self, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        sql, args = "SELECT * FROM listings", ()
+        if status:
+            sql, args = sql + " WHERE status = ?", (status,)
+        rows = self.conn.execute(sql + " ORDER BY updated_at DESC", args).fetchall()
+        return [dict(r) for r in rows]
+
+    def find_ids(self, target: str) -> List[str]:
+        """Identifiants correspondant à `target` : id complet (v1|123|0) ou seulement sa partie numérique (123)."""
+        rows = self.conn.execute(
+            "SELECT item_id FROM listings WHERE item_id = ? OR instr(item_id, ?) > 0", (target, f"|{target}|")
+        ).fetchall()
+        return [r["item_id"] for r in rows]
+
+    def delete(self, item_ids: List[str]) -> int:
+        cur = self.conn.executemany("DELETE FROM listings WHERE item_id = ?", [(i,) for i in item_ids])
+        self.conn.commit()
+        return cur.rowcount
 
     def refresh_price(self, listing: Listing) -> None:
         self.conn.execute(

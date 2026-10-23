@@ -9,8 +9,12 @@ on:
       command:
         description: "Commande à lancer"
         type: choice
-        options: [run, callbacks]
+        options: [run, callbacks, list, forget]
         default: run
+      target:
+        description: "forget : ID(s) d'annonce séparés par des espaces (voir `list`), ou « all » pour tout vider"
+        type: string
+        default: ""
 
 permissions:
   contents: write            # pour recommiter la base SQLite
@@ -41,6 +45,7 @@ jobs:
           ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TARGET: ${{ inputs.target }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CMD="${{ inputs.command }}"
@@ -49,7 +54,16 @@ jobs:
           else
             CMD=callbacks
           fi
-          python -m mba_hunter "$CMD"
+          if [ "$CMD" = "forget" ]; then
+            if [ "$TARGET" = "all" ]; then
+              python -m mba_hunter forget --all
+            else
+              # $TARGET volontairement sans guillemets : une liste d'IDs séparés par des espaces
+              python -m mba_hunter forget $TARGET
+            fi
+          else
+            python -m mba_hunter "$CMD"
+          fi
 
       - name: Sauvegarder la base SQLite
         if: always()

@@ -32,8 +32,22 @@ python -m mba_hunter run --dry-run   # recherche + analyse, affiche au lieu d'en
 python -m mba_hunter run             # clics en attente + recherche + notifications
 python -m mba_hunter callbacks       # traite seulement les clics Valider/Refuser
 python -m mba_hunter listen          # écoute les clics en continu (réponse immédiate)
+python -m mba_hunter list            # affiche les annonces en base (--status notified|validated|refused|skipped|error)
+python -m mba_hunter forget 123456   # retire une annonce de la base (ID de la colonne ID de `list`)
+python -m mba_hunter forget --all    # vide la base
 pytest                               # tests (pip install pytest)
 ```
+
+### Revoir une annonce déjà traitée
+
+`forget` supprime la ligne : au prochain `run`, l'annonce est traitée comme nouvelle (réanalysée par Claude, donc payant),
+et renotifiée si elle est toujours dans les résultats eBay et passe les filtres.
+
+Depuis GitHub, sans toucher à ton Mac : onglet *Actions → mba-hunter → Run workflow*, puis
+- `command = list` : le tableau des annonces apparaît dans le log de l'étape « Lancer mba-hunter » ;
+- `command = forget` et `target = 123456` (plusieurs IDs séparés par des espaces, ou `all`) : le workflow supprime les lignes et recommite la base.
+
+En local, fais d'abord `git pull` (le bot recommite la base) et pense à pousser la base modifiée.
 
 Réglages dans [config.yaml](config.yaml) : `filters.max_price`, motifs d'exclusion, modèle et effort Claude, score minimum pour notifier, nombre max d'analyses par passage.
 

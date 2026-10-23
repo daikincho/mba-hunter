@@ -122,3 +122,39 @@ def test_refuse_and_foreign_chat():
     assert bot.process_updates(db) == 1
     assert db.get(listing.item_id)["status"] == "refused"
     assert not any(m == "sendMessage" for m, _ in bot.calls)
+
+
+def test_find_and_delete_by_short_id():
+    db = Database(":memory:")
+    a, b = make_listing(), make_listing()
+    b.item_id = "v1|456|0"
+    db.save(a, "notified", make_analysis())
+    db.save(b, "skipped", make_analysis())
+    assert db.find_ids("123") == ["v1|123|0"]          # partie numérique
+    assert db.find_ids("v1|456|0") == ["v1|456|0"]     # id complet
+    assert db.find_ids("12") == []                      # pas de correspondance partielle
+    assert db.delete(["v1|123|0"]) == 1
+    assert [r["item_id"] for r in db.list_listings()] == ["v1|456|0"]
+    assert [r["item_id"] for r in db.list_listings("skipped")] == ["v1|456|0"]
+    assert db.list_listings("notified") == []
+
+
+def test_cli_list_and_forget(tmp_path, capsys):
+    import yaml
+    from mba_hunter import main as m
+
+    cfg = load_config() | {"database": {"path": str(tmp_path / "t.db")}}
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(yaml.safe_dump(cfg))
+    db = Database(tmp_path / "t.db")
+    db.save(make_listing(), "notified", make_analysis())
+    db.close()
+
+    assert m.main(["list", "--config", str(cfg_file)]) == 0
+    assert "123" in capsys.readouterr().out
+    assert m.main(["forget", "999", "--config", str(cfg_file)]) == 1   # inconnue
+    assert m.main(["forget", "123", "--config", str(cfg_file)]) == 0
+    assert m.main(["list", "--config", str(cfg_file)]) == 0
+    assert "Aucune annonce" in capsys.readouterr().out
+    with pytest.raises(SystemExit):                                     # ni ID ni --all
+        m.main(["forget", "--config", str(cfg_file)])
