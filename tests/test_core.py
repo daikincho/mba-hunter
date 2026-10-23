@@ -271,3 +271,14 @@ def test_discover_chats_from_messages_and_clicks():
     assert [c["id"] for c in bot.discover_chats()] == [42, -100]      # dédoublonné
     assert "offset" not in sent["json"]                                 # ne consomme rien
     assert sent["json"]["allowed_updates"] == ["message", "callback_query"]
+
+
+def test_listing_message_has_buttons_only_when_enabled():
+    sent = []
+    bot = TelegramBot("t", "42")
+    bot.call = lambda method, timeout=30, **p: sent.append(p) or {"message_id": 1}
+    bot.send_listing(make_listing(), make_analysis())
+    bot.send_listing(make_listing(), make_analysis(), buttons=True)
+    assert "reply_markup" not in sent[0]
+    assert sent[1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"].startswith("ok:")
+    assert "580.00" in sent[0]["text"] and "https://www.ebay.fr/itm/123" in sent[0]["text"]

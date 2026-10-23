@@ -41,18 +41,19 @@ class TelegramBot:
 
     # --- envoi -------------------------------------------------------------------
 
-    def send_listing(self, listing: Listing, analysis: Analysis) -> int:
+    def send_listing(self, listing: Listing, analysis: Analysis, buttons: bool = False) -> int:
         params: Dict[str, Any] = {
             "chat_id": self.chat_id,
             "text": format_listing_message(listing, analysis),
             "parse_mode": "HTML",
-            "reply_markup": {
+        }
+        if buttons:
+            params["reply_markup"] = {
                 "inline_keyboard": [[
                     {"text": "✅ Valider", "callback_data": f"ok:{listing.item_id}"},
                     {"text": "❌ Refuser", "callback_data": f"ko:{listing.item_id}"},
                 ]]
-            },
-        }
+            }
         if listing.image_url:
             params["link_preview_options"] = {"url": listing.image_url, "prefer_large_media": True}
         else:

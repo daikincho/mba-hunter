@@ -3,7 +3,9 @@ name: mba-hunter
 on:
   schedule:
     - cron: "0 6 * * *"      # recherche quotidienne (08:00 Paris en été, 07:00 en hiver)
-    - cron: "30 */4 * * *"   # traitement des boutons Telegram (getUpdates ne garde les clics que 24 h)
+    # Boutons Telegram désactivés pour l'instant (telegram.buttons: false dans config.yaml).
+    # Pour les réactiver, remettre ce passage, qui traite les clics (Telegram ne les garde que 24 h) :
+    # - cron: "30 */4 * * *"
   workflow_dispatch:
     inputs:
       command:

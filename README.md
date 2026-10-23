@@ -6,9 +6,9 @@ Veille quotidienne des **enchères eBay.fr de MacBook Air M2 13"** :
 2. filtre par titre (regex) et par prix max (`config.yaml`, frais de port exclus par défaut) ;
 3. analyse de chaque annonce par Claude → JSON `score` / `risques` / `prix_max` / `resume` / `recommandation` ;
 4. stockage en SQLite (`data/mba_hunter.db`) ;
-5. notification Telegram avec boutons **✅ Valider** / **❌ Refuser**.
+5. notification Telegram (lien, score, prix max conseillé, risques). Les boutons **✅ Valider** / **❌ Refuser** existent mais sont désactivés (`telegram.buttons: false`).
 
-**Aucune enchère automatique** : « Valider » renvoie le lien de l'annonce et le prix max conseillé. L'enchère se place à la main.
+**Aucune enchère automatique** : le message contient le lien de l'annonce et le prix max conseillé. L'enchère se place à la main.
 
 ## Installation locale
 

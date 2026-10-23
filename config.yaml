@@ -46,5 +46,8 @@ claude:
   max_analyses_per_run: 25      # garde-fou sur le coût
   min_score_to_notify: 0        # 0 = le score est affiché mais ne bloque jamais l'envoi (mettre p. ex. 50 pour filtrer)
 
+telegram:
+  buttons: false                # true : ajoute les boutons Valider / Refuser sous chaque annonce (voir README)
+
 database:
   path: data/mba_hunter.db

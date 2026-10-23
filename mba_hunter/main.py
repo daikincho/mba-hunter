@@ -102,7 +102,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
             print(format_listing_message(listing, analysis), end="\n\n")
             continue
         try:
-            message_id = bot.send_listing(listing, analysis)
+            message_id = bot.send_listing(listing, analysis, buttons=config.get("telegram", {}).get("buttons", False))
             db.set_status(listing.item_id, "notified", telegram_message_id=message_id)
             notified += 1
         except TelegramError as e:
