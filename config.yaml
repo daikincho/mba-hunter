@@ -4,7 +4,7 @@
 ebay:
   marketplace: EBAY_FR
   query: "MacBook Air M2 13"
-  category_ids: "111422"        # Apple > Ordinateurs portables
+  category_ids: ""              # vide = toutes catégories (les IDs diffèrent selon le site eBay ; filtrage par titre ci-dessous)
   buying_options: AUCTION       # enchères uniquement
   sort: endingSoonest
   limit: 100                    # résultats par page (max 200)

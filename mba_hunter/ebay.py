@@ -129,6 +129,8 @@ class EbayClient:
             params["offset"] = page * params["limit"]
             data = self._get("/item_summary/search", params)
             items = data.get("itemSummaries", [])
+            if page == 0:
+                log.info("eBay : total=%s, paramètres=%s", data.get("total"), params)
             listings.extend(parse_summary(item) for item in items)
             if not data.get("next") or not items:
                 break
