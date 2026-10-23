@@ -61,14 +61,12 @@ def run_probe(client: EbayClient, config: Dict[str, Any], raw_item_id: str) -> i
     # (libellé, paramètres, en-têtes, place de marché)
     variants: List[Tuple[str, Dict[str, Any], Optional[Dict[str, str]], Optional[str]]] = [
         (f"référence : {query!r} + enchère", {"q": query, "filter": auction}, None, None),
-        ("+ deliveryCountry:FR", {"q": query, "filter": f"{auction},deliveryCountry:FR"}, None, None),
         ("+ itemLocationCountry:DE", {"q": query, "filter": f"{auction},itemLocationCountry:DE"}, None, None),
-        ("+ en-tête acheteur en France", {"q": query, "filter": auction}, FR_CONTEXT, None),
-        ("+ deliveryCountry:FR + en-tête FR", {"q": query, "filter": f"{auction},deliveryCountry:FR"}, FR_CONTEXT, None),
-        (f"catégorie {category_id} seule (sans mot-clé)", {"category_ids": category_id, "filter": auction}, None, None),
-        (f"catégorie {category_id} + 'macbook'", {"q": "macbook", "category_ids": category_id, "filter": auction}, None, None),
-        ("place de marché EBAY_DE, 'macbook'", {"q": "macbook", "filter": auction}, None, "EBAY_DE"),
-        ("place de marché EBAY_DE, catégorie seule", {"category_ids": category_id, "filter": auction}, None, "EBAY_DE"),
+        ("+ itemLocationCountry:DE + deliveryCountry:FR",
+         {"q": query, "filter": f"{auction},itemLocationCountry:DE,deliveryCountry:FR"}, None, None),
+        ("+ itemLocationCountry:{DE|IT|ES} (plusieurs pays)",
+         {"q": query, "filter": f"{auction},itemLocationCountry:{{DE|IT|ES}}"}, None, None),
+        ("+ itemLocationCountry:FR", {"q": query, "filter": f"{auction},itemLocationCountry:FR"}, None, None),
     ]
     print("\n=== Recherches ===")
     clients: Dict[str, EbayClient] = {}

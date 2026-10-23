@@ -8,7 +8,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import requests
 from urllib.parse import quote
@@ -119,7 +119,32 @@ class EbayClient:
         limit: int = 100,
         max_pages: int = 1,
         delivery_country: str = "",
+        item_location_countries: Sequence[str] = (),
     ) -> List[Listing]:
+        """Recherche par défaut, puis une recherche par pays de vendeur ; résultats fusionnés sans doublon.
+
+        Sur EBAY_FR, la recherche par défaut ne remonte qu'une partie des annonces : celles d'autres pays
+        n'apparaissent qu'avec le filtre itemLocationCountry (constaté avec `probe`).
+        """
+        found: Dict[str, Listing] = {}
+        per_country: Dict[str, int] = {}
+        for country in ["", *(str(c).strip().upper() for c in item_location_countries)]:
+            try:
+                batch = self._search_once(query, max_price, category_ids, buying_options, sort, limit,
+                                          max_pages, delivery_country, country)
+            except EbayError as e:
+                if not country:  # la recherche par défaut doit marcher (sinon : identifiants, quota…)
+                    raise
+                log.warning("eBay : pays %s ignoré (%s)", country, e)
+                continue
+            per_country[country or "défaut"] = len(batch)
+            for listing in batch:
+                found.setdefault(listing.item_id, listing)
+        log.info("eBay : %d annonces uniques pour %r — par pays : %s", len(found), query, per_country)
+        return sorted(found.values(), key=lambda l: l.end_date or "")
+
+    def _search_once(self, query: str, max_price: float, category_ids: str, buying_options: str, sort: str,
+                     limit: int, max_pages: int, delivery_country: str, location_country: str) -> List[Listing]:
         filters = [
             f"buyingOptions:{{{buying_options}}}",
             f"price:[..{max_price:g}]",
@@ -127,6 +152,8 @@ class EbayClient:
         ]
         if delivery_country:
             filters.append(f"deliveryCountry:{delivery_country}")
+        if location_country:
+            filters.append(f"itemLocationCountry:{location_country}")
         params: Dict[str, Any] = {"q": query, "filter": ",".join(filters), "sort": sort, "limit": min(limit, 200)}
         if category_ids:
             params["category_ids"] = category_ids
@@ -137,11 +164,10 @@ class EbayClient:
             data = self._get("/item_summary/search", params)
             items = data.get("itemSummaries", [])
             if page == 0:
-                log.info("eBay : total=%s, paramètres=%s", data.get("total"), params)
+                log.debug("eBay : total=%s, paramètres=%s", data.get("total"), params)
             listings.extend(parse_summary(item) for item in items)
             if not data.get("next") or not items:
                 break
-        log.info("eBay : %d annonces trouvées pour %r", len(listings), query)
         return listings
 
     def with_marketplace(self, marketplace: str) -> "EbayClient":

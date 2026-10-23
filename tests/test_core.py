@@ -197,7 +197,7 @@ def test_probe_reports_where_listing_disappears(capsys):
 
         def search_raw(self, params, headers=None):
             # l'annonce n'apparaît que lorsque le filtre de livraison vers la France est ajouté
-            found = "deliveryCountry:FR" in params.get("filter", "")
+            found = "itemLocationCountry:DE,deliveryCountry:FR" in params.get("filter", "")
             items = [{"itemId": "v1|336854225095|0"}] if found else []
             return {"total": len(items), "itemSummaries": items}
 
@@ -205,4 +205,33 @@ def test_probe_reports_where_listing_disappears(capsys):
     out = capsys.readouterr().out
     assert "561.00 EUR" in out
     assert "enchère : total=0 → absente" in out
-    assert "+ deliveryCountry:FR : total=1 → TROUVÉE (position 1)" in out
+    assert "+ itemLocationCountry:DE + deliveryCountry:FR : total=1 → TROUVÉE (position 1)" in out
+
+
+def test_search_queries_each_seller_country_and_deduplicates():
+    from mba_hunter.ebay import EbayClient
+
+    def summary(num, country):
+        return {"itemId": f"v1|{num}|0", "title": "MacBook Air M2", "itemWebUrl": "u",
+                "price": {"value": "500", "currency": "EUR"}, "itemEndDate": f"2026-11-0{num}T10:00:00Z"}
+
+    calls = []
+
+    def fake_get(path, params=None, extra_headers=None):
+        flt = params["filter"]
+        calls.append(flt)
+        if "itemLocationCountry:DE" in flt:
+            return {"itemSummaries": [summary(2, "DE"), summary(1, "DE")]}
+        if "itemLocationCountry:XX" in flt:
+            raise EbayError("pays invalide")
+        return {"itemSummaries": [summary(1, "FR")]}      # recherche par défaut : l'annonce 1 (doublon)
+
+    from mba_hunter.ebay import EbayError
+    client = EbayClient("a", "b")
+    client._get = fake_get
+    result = client.search("MacBook M2", 650, delivery_country="FR", item_location_countries=["DE", "XX"])
+
+    assert [l.item_id for l in result] == ["v1|1|0", "v1|2|0"]      # dédoublonné, trié par fin
+    assert len(calls) == 3                                           # défaut + DE + XX (ignoré)
+    assert all("deliveryCountry:FR" in c for c in calls)
+    assert "itemLocationCountry" not in calls[0]

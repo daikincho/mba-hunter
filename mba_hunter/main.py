@@ -44,6 +44,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
         limit=ebay_cfg.get("limit", 100),
         max_pages=ebay_cfg.get("max_pages", 1),
         delivery_country=ebay_cfg.get("delivery_country", ""),
+        item_location_countries=ebay_cfg.get("item_location_countries", []),
     )
 
     analyzer = Analyzer(model=claude_cfg["model"], effort=claude_cfg.get("effort", "medium"))

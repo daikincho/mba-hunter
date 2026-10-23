@@ -7,7 +7,13 @@ ebay:
   category_ids: ""              # vide = toutes catégories (les IDs diffèrent selon le site eBay ; filtrage par titre ci-dessous)
   buying_options: AUCTION       # enchères uniquement
   sort: endingSoonest
-  delivery_country: FR          # annonces livrables dans ce pays, quel que soit le pays du vendeur ("" = pas de filtre)
+  delivery_country: FR          # annonces livrables dans ce pays ("" = pas de filtre)
+  # Pays de vendeur interrogés EN PLUS de la recherche par défaut (1 appel eBay par pays et par passage).
+  # Sur EBAY_FR, la recherche par défaut ne remonte pas les annonces étrangères : il faut les demander pays par pays.
+  # Codes ISO à 2 lettres ; ajoute ou retire des pays à volonté.
+  item_location_countries:
+    ["FR", "DE", "IT", "ES", "BE", "NL", "LU", "AT", "PT", "IE", "PL", "CZ", "SK", "SI", "HR", "HU", "RO", "BG", "GR", "SE", "DK", "FI", "EE", "LV", "LT", "CY", "MT", "GB", "CH", "NO"]
+  # (codes entre guillemets : sans eux, YAML lit NO comme « non »)
   limit: 100                    # résultats par page (max 200)
   max_pages: 2
   fetch_details: true           # récupère la description complète (1 appel par annonce retenue)
