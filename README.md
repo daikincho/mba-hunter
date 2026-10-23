@@ -47,7 +47,12 @@ Workflow [.github/workflows/hunt.yml](.github/workflows/hunt.yml) :
 - **toutes les 4 h** : `callbacks`. Ce passage est nécessaire parce que Telegram ne conserve les clics que 24 h, et qu'aucun serveur n'écoute en continu. Après un clic, la réponse arrive donc dans les 4 h. Pour une réponse immédiate, lancer `listen` sur une machine allumée ;
 - la base SQLite est recommitée dans le dépôt après chaque passage (`[skip ci]`).
 
-À configurer : *Settings → Secrets and variables → Actions* avec les 5 variables ci-dessus, et *Settings → Actions → General → Workflow permissions* sur **Read and write**.
+À configurer :
+
+1. *Settings → Secrets and variables → Actions → onglet **Secrets** → **New repository secret***, une fois pour chacune des 5 variables ci-dessus, avec exactement le même nom.
+   - Il faut des **Repository secrets**. Ni *Variables* (visibles en clair, non lues par `secrets.*`), ni *Environment secrets* (rattachés à un environnement que le workflow ne déclare pas).
+   - Un secret absent ou mal nommé n'est pas signalé par GitHub : le workflow reçoit simplement une valeur vide (« Variable d'environnement manquante » dans les logs).
+2. *Settings → Actions → General → Workflow permissions* sur **Read and write**.
 
 ## Statuts en base
 
