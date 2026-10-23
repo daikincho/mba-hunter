@@ -290,4 +290,5 @@ def test_message_for_listing_claude_advises_against():
     avoid = make_analysis(prix_max=0.0)
     avoid.recommandation, avoid.score = "eviter", 8
     text = format_listing_message(make_listing(), avoid)
-    assert "aucun" in text and "0.00 €" not in text and "8/100" in text
+    assert "Prix max conseillé : <b>aucun</b>" in text and "Prix max conseillé : <b>0.00" not in text
+    assert "8/100" in text
