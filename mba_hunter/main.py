@@ -11,7 +11,7 @@ import requests
 from .analyzer import AnalysisError, Analyzer
 from .config import ROOT, load_config, load_secrets
 from .db import Database
-from .ebay import EbayClient
+from .ebay import EbayClient, EbayError
 from .filters import check_listing
 from .telegram import TelegramBot, TelegramError, format_listing_message
 
@@ -63,7 +63,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
             if ebay_cfg.get("fetch_details", True):
                 ebay.enrich(listing)
             analysis = analyzer.analyze(listing, budget)
-        except (AnalysisError, requests.RequestException) as e:  # une annonce en échec ne bloque pas les autres
+        except (AnalysisError, EbayError, requests.RequestException) as e:  # une annonce en échec ne bloque pas les autres
             log.error("Analyse impossible pour %s : %s", listing.item_id, e)
             db.save(listing, "error", error=str(e))
             continue
@@ -126,7 +126,11 @@ def main(argv: Optional[list] = None) -> int:
             handled = bot.process_updates(db)
             log.info("%d clic(s) Telegram traité(s)", handled)
         if args.command == "run":
-            hunt(config, db, bot)
+            try:
+                hunt(config, db, bot)
+            except EbayError as e:
+                log.error("%s", e)
+                return 1
     except KeyboardInterrupt:
         pass
     finally:

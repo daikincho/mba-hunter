@@ -48,6 +48,21 @@ class Listing:
         return (end - now).total_seconds() / 3600
 
 
+class EbayError(Exception):
+    pass
+
+
+def _raise_for_status(resp: requests.Response, what: str) -> None:
+    if resp.ok:
+        return
+    try:
+        err = resp.json()
+        detail = err.get("error_description") or err.get("error") or (err.get("errors") or [{}])[0].get("message")
+    except ValueError:
+        detail = None
+    raise EbayError(f"{what} : HTTP {resp.status_code} — {detail or resp.text[:200]}")
+
+
 class EbayClient:
     def __init__(self, client_id: str, client_secret: str, marketplace: str = "EBAY_FR", sandbox: bool = False):
         host = "api.sandbox.ebay.com" if sandbox else "api.ebay.com"
@@ -70,7 +85,7 @@ class EbayClient:
             data={"grant_type": "client_credentials", "scope": API_SCOPE},
             timeout=30,
         )
-        resp.raise_for_status()
+        _raise_for_status(resp, "authentification eBay")
         data = resp.json()
         self._token = data["access_token"]
         self._token_expiry = time.time() + int(data.get("expires_in", 7200))
@@ -87,7 +102,7 @@ class EbayClient:
             },
             timeout=30,
         )
-        resp.raise_for_status()
+        _raise_for_status(resp, f"eBay {path}")
         return resp.json()
 
     def search(
