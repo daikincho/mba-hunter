@@ -56,6 +56,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
     rejected: Dict[str, int] = {}
     known = 0
     failures = errors = 0  # échecs d'analyse consécutifs / au total
+    send_failures = 0
 
     for listing in listings:
         if db.is_known(listing.item_id):
@@ -106,7 +107,8 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
             notified += 1
         except TelegramError as e:
             log.error("Envoi Telegram impossible pour %s : %s", listing.item_id, e)
-            db.save(listing, "error", analysis, error=str(e))
+            send_failures += 1
+            db.save(listing, "error", analysis, error=str(e))  # sera retentée (et réanalysée) au prochain passage
 
     if listings and not (analyzed or known or errors):
         log.warning("Les %d annonces trouvées ont toutes été écartées par les filtres", len(listings))
@@ -114,6 +116,8 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
         log.info("  %3d écartée(s) — %s", count, reason)
     log.info("Terminé : %d trouvée(s), %d déjà connue(s), %d écartée(s), %d analysée(s), %d en erreur, %d notifiée(s)",
              len(listings), known, sum(rejected.values()), analyzed, errors, notified)
+    if send_failures:
+        log.error("%d envoi(s) Telegram en échec : vérifie TELEGRAM_CHAT_ID (lance `test-telegram`)", send_failures)
 
 
 def short_id(item_id: str) -> str:
@@ -157,11 +161,12 @@ def forget(db: Database, targets: List[str], everything: bool) -> int:
 
 def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(prog="mba_hunter", description="Chasse aux MacBook Air M2 sur eBay")
-    parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget", "probe"], help=(
+    parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget", "probe", "test-telegram"], help=(
         "run : traite les clics Telegram en attente puis lance la recherche ; "
         "callbacks : traite uniquement les clics ; listen : écoute les clics en continu ; "
         "list : affiche les annonces en base ; forget ID… : retire des annonces de la base ; "
-        "probe ID : diagnostique pourquoi une annonce eBay n'est pas trouvée"
+        "probe ID : diagnostique pourquoi une annonce eBay n'est pas trouvée ; "
+        "test-telegram : envoie un message de test"
     ))
     parser.add_argument("targets", nargs="*", metavar="ID", help="forget : identifiant(s) d'annonce (voir `list`)")
     parser.add_argument("--all", action="store_true", dest="everything", help="forget : supprime toutes les annonces")
@@ -189,6 +194,18 @@ def main(argv: Optional[list] = None) -> int:
                 parser.error("forget : indique au moins un ID (voir `list`) ou --all")
             return forget(db, args.targets, args.everything)
 
+        if args.command == "test-telegram":
+            secrets = load_secrets(need_ebay=False)
+            try:
+                TelegramBot(secrets.telegram_bot_token, secrets.telegram_chat_id).send_text(
+                    "✅ <b>mba-hunter</b> : la connexion Telegram fonctionne.")
+            except TelegramError as e:
+                print(f"Échec : {e}")
+                print("→ Écris /start à ton bot, puis ouvre https://api.telegram.org/bot<TOKEN>/getUpdates pour lire "
+                      "ton \"chat\":{\"id\":…} ; TELEGRAM_CHAT_ID doit être ce nombre, sans espace ni guillemet.")
+                return 1
+            print("Message envoyé : regarde ton Telegram.")
+            return 0
         if args.command == "probe":
             if len(args.targets) != 1:
                 parser.error("probe : indique le numéro de l'annonce eBay (ex. 336854225095)")

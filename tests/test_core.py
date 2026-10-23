@@ -240,3 +240,17 @@ def test_search_worldwide_region_pass_and_dedup():
     assert not any("itemLocationRegion" in f and "itemLocationCountry" in f for f, _ in calls)
     assert "itemLocation" not in calls[0][0]
     assert calls[1][1] == {"X-EBAY-C-ENDUSERCTX": "contextualLocation=country=FR,zip=75001"}
+
+
+def test_cli_test_telegram_reports_bad_chat_id(monkeypatch, capsys):
+    from mba_hunter import main as m
+    from mba_hunter.telegram import TelegramError
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.setattr(m.TelegramBot, "call", lambda self, method, **p: (_ for _ in ()).throw(
+        TelegramError("sendMessage : Bad Request: chat not found")))
+    assert m.main(["test-telegram"]) == 1
+    assert "chat not found" in capsys.readouterr().out
+    monkeypatch.setattr(m.TelegramBot, "call", lambda self, method, **p: {"message_id": 1})
+    assert m.main(["test-telegram"]) == 0
