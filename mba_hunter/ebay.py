@@ -66,6 +66,7 @@ def _raise_for_status(resp: requests.Response, what: str) -> None:
 
 class EbayClient:
     def __init__(self, client_id: str, client_secret: str, marketplace: str = "EBAY_FR", sandbox: bool = False):
+        self.sandbox = sandbox
         host = "api.sandbox.ebay.com" if sandbox else "api.ebay.com"
         self.token_url = f"https://{host}/identity/v1/oauth2/token"
         self.browse_url = f"https://{host}/buy/browse/v1"
@@ -92,7 +93,8 @@ class EbayClient:
         self._token_expiry = time.time() + int(data.get("expires_in", 7200))
         return self._token
 
-    def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _get(self, path: str, params: Optional[Dict[str, Any]] = None,
+             extra_headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         resp = self.session.get(
             f"{self.browse_url}{path}",
             params=params,
@@ -100,6 +102,7 @@ class EbayClient:
                 "Authorization": f"Bearer {self._get_token()}",
                 "X-EBAY-C-MARKETPLACE-ID": self.marketplace,
                 "Accept-Language": "fr-FR",
+                **(extra_headers or {}),
             },
             timeout=30,
         )
@@ -138,11 +141,14 @@ class EbayClient:
         log.info("eBay : %d annonces trouvées pour %r", len(listings), query)
         return listings
 
+    def with_marketplace(self, marketplace: str) -> "EbayClient":
+        return EbayClient(self.client_id, self.client_secret, marketplace=marketplace, sandbox=self.sandbox)
+
     def get_item(self, item_id: str) -> Dict[str, Any]:
         return self._get(f"/item/{quote(item_id, safe='')}")
 
-    def search_raw(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        return self._get("/item_summary/search", params)
+    def search_raw(self, params: Dict[str, Any], extra_headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+        return self._get("/item_summary/search", params, extra_headers)
 
     def enrich(self, listing: Listing) -> Listing:
         """Ajoute description, caractéristiques et état détaillé via getItem."""

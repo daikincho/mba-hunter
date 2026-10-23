@@ -12,19 +12,28 @@ def normalize_item_id(raw: str) -> str:
     return raw if raw.startswith("v1|") else f"v1|{raw}|0"
 
 
-def _find(client: EbayClient, params: Dict[str, Any], item_id: str, pages: int = 3) -> Tuple[Optional[int], Any]:
+def _numeric(item_id: str) -> str:
+    parts = item_id.split("|")
+    return parts[1] if len(parts) > 1 else item_id
+
+
+def _find(client: EbayClient, params: Dict[str, Any], item_id: str, headers: Optional[Dict[str, str]] = None,
+          pages: int = 5) -> Tuple[Optional[int], Any]:
     """Retourne (position de l'annonce ou None, total annoncé par eBay)."""
     total, seen = None, 0
     for page in range(pages):
-        data = client.search_raw({**params, "limit": 200, "offset": page * 200})
+        data = client.search_raw({**params, "limit": 200, "offset": page * 200}, headers)
         total = data.get("total", 0)
         for item in data.get("itemSummaries", []):
             seen += 1
-            if item.get("itemId") == item_id:
+            if _numeric(item.get("itemId", "")) == _numeric(item_id):
                 return seen, total
         if not data.get("next"):
             break
     return None, total
+
+
+FR_CONTEXT = {"X-EBAY-C-ENDUSERCTX": "contextualLocation=country=FR,zip=75001"}
 
 
 def run_probe(client: EbayClient, config: Dict[str, Any], raw_item_id: str) -> int:
@@ -38,31 +47,39 @@ def run_probe(client: EbayClient, config: Dict[str, Any], raw_item_id: str) -> i
         print(f"getItem impossible : {e}")
         return 1
     price = item.get("currentBidPrice") or item.get("price") or {}
+    category_id = item.get("categoryId")
     print(f"Titre            : {item.get('title')}")
     print(f"Modes d'achat    : {item.get('buyingOptions')}")
     print(f"Prix / enchère   : {price.get('value')} {price.get('currency')}  ({item.get('bidCount')} enchère(s))")
     print(f"Localisation     : {(item.get('itemLocation') or {}).get('country')}")
-    print(f"Catégorie        : {item.get('categoryPath')}  (id {item.get('categoryId')})")
+    print(f"Catégorie        : {item.get('categoryPath')}  (id {category_id})")
     print(f"Fin              : {item.get('itemEndDate')}")
     print(f"Expédition       : {[(o.get('shippingCost') or {}).get('value') for o in item.get('shippingOptions', [])]}")
 
     auction = f"buyingOptions:{{{ebay_cfg.get('buying_options', 'AUCTION')}}}"
-    price_f, cur_f = f"price:[..{max_price:g}]", "priceCurrency:EUR"
     query = ebay_cfg["query"]
-    title_words = (item.get("title") or "").split()
-    variants: List[Tuple[str, Dict[str, Any]]] = [
-        (f"requête actuelle {query!r} + tous les filtres", {"q": query, "filter": ",".join([auction, price_f, cur_f])}),
-        ("sans filtre de prix", {"q": query, "filter": auction}),
-        ("sans filtre enchère", {"q": query, "filter": ",".join([price_f, cur_f])}),
-        ("sans aucun filtre", {"q": query}),
-        ("requête 'macbook air m2'", {"q": "macbook air m2", "filter": auction}),
-        ("requête 'macbook'", {"q": "macbook", "filter": auction}),
-        ("mots du titre (6 premiers)", {"q": " ".join(title_words[:6]), "filter": auction}),
+    # (libellé, paramètres, en-têtes, place de marché)
+    variants: List[Tuple[str, Dict[str, Any], Optional[Dict[str, str]], Optional[str]]] = [
+        (f"référence : {query!r} + enchère", {"q": query, "filter": auction}, None, None),
+        ("+ deliveryCountry:FR", {"q": query, "filter": f"{auction},deliveryCountry:FR"}, None, None),
+        ("+ itemLocationCountry:DE", {"q": query, "filter": f"{auction},itemLocationCountry:DE"}, None, None),
+        ("+ en-tête acheteur en France", {"q": query, "filter": auction}, FR_CONTEXT, None),
+        ("+ deliveryCountry:FR + en-tête FR", {"q": query, "filter": f"{auction},deliveryCountry:FR"}, FR_CONTEXT, None),
+        (f"catégorie {category_id} seule (sans mot-clé)", {"category_ids": category_id, "filter": auction}, None, None),
+        (f"catégorie {category_id} + 'macbook'", {"q": "macbook", "category_ids": category_id, "filter": auction}, None, None),
+        ("place de marché EBAY_DE, 'macbook'", {"q": "macbook", "filter": auction}, None, "EBAY_DE"),
+        ("place de marché EBAY_DE, catégorie seule", {"category_ids": category_id, "filter": auction}, None, "EBAY_DE"),
     ]
     print("\n=== Recherches ===")
-    for label, params in variants:
+    clients: Dict[str, EbayClient] = {}
+    for label, params, headers, marketplace in variants:
+        c = client
+        if marketplace:
+            if marketplace not in clients:
+                clients[marketplace] = client.with_marketplace(marketplace)
+            c = clients[marketplace]
         try:
-            position, total = _find(client, params, item_id)
+            position, total = _find(c, params, item_id, headers)
         except EbayError as e:
             print(f"- {label} : erreur {e}")
             continue

@@ -172,14 +172,17 @@ def test_probe_reports_where_listing_disappears(capsys):
             return {"title": "MacBook Air M2 13 256Go", "buyingOptions": ["AUCTION"],
                     "currentBidPrice": {"value": "561.00", "currency": "EUR"}, "bidCount": 4}
 
-        def search_raw(self, params):
-            # l'annonce n'apparaît que lorsque le filtre de prix est retiré
-            found = "price:[" not in params.get("filter", "")
+        def with_marketplace(self, marketplace):
+            return self
+
+        def search_raw(self, params, headers=None):
+            # l'annonce n'apparaît que lorsque le filtre de livraison vers la France est ajouté
+            found = "deliveryCountry:FR" in params.get("filter", "")
             items = [{"itemId": "v1|336854225095|0"}] if found else []
             return {"total": len(items), "itemSummaries": items}
 
     run_probe(FakeClient(), load_config(), "336854225095")
     out = capsys.readouterr().out
     assert "561.00 EUR" in out
-    assert "tous les filtres : total=0 → absente" in out
-    assert "sans filtre de prix : total=1 → TROUVÉE (position 1)" in out
+    assert "enchère : total=0 → absente" in out
+    assert "+ deliveryCountry:FR : total=1 → TROUVÉE (position 1)" in out
