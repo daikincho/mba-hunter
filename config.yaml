@@ -3,7 +3,7 @@
 
 ebay:
   marketplace: EBAY_FR
-  query: "MacBook Air M2"
+  query: "MacBook M2"
   category_ids: ""              # vide = toutes catégories (les IDs diffèrent selon le site eBay ; filtrage par titre ci-dessous)
   buying_options: AUCTION       # enchères uniquement
   sort: endingSoonest
