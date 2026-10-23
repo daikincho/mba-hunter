@@ -37,7 +37,8 @@ def filters():
     ("MacBook Air M2 15\" 2023", False),
     ("MacBook Air M2 13 HS pour pièces", False),
     ("Coque MacBook Air M2 13", False),
-    ("MacBook Pro M2 13", False),
+    ("MacBook Pro M2 13", True),   # plus de motif « air » requis : seul M2 compte
+    ("Ordinateur portable 13 pouces", False),
 ])
 def test_title_filters(filters, title, expected):
     assert check_listing(make_listing(title=title), filters)[0] is expected

@@ -19,7 +19,6 @@ filters:
   # Expressions régulières, insensibles à la casse.
   required_patterns:
     - '\bm2\b'
-    - '\bair\b'
   excluded_patterns:
     - '\bm1\b'
     - '\bm3\b'
