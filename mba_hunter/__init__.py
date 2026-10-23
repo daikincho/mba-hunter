@@ -1,1 +1,1 @@
-"""mba-hunter : veille des enchères eBay de MacBook Air M2 13"."""
+"""mba-hunter : veille des enchères eBay de MacBook M2 (Air et Pro)."""

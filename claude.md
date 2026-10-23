@@ -1,6 +1,6 @@
 # mba-hunter
 
-Veille eBay.fr (enchères MacBook Air M2 13") → analyse Claude → SQLite → Telegram. Voir README.md.
+Veille eBay.fr (enchères MacBook M2, Air et Pro) → analyse Claude → SQLite → Telegram. Voir README.md.
 
 - Règle métier : **jamais d'enchère automatique**. La validation Telegram renvoie seulement le lien + le prix max.
 - Code et messages utilisateur en français.

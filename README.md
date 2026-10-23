@@ -1,6 +1,6 @@
 # mba-hunter
 
-Veille quotidienne des **enchères eBay.fr de MacBook Air M2 13"** :
+Veille quotidienne des **enchères eBay.fr de MacBook M2 (Air et Pro)** :
 
 1. recherche via l'eBay Browse API (`EBAY_FR`, enchères uniquement) ;
 2. filtre par titre (regex) et par prix max (`config.yaml`, frais de port exclus par défaut) ;

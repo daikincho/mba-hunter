@@ -160,7 +160,7 @@ def forget(db: Database, targets: List[str], everything: bool) -> int:
 
 
 def main(argv: Optional[list] = None) -> int:
-    parser = argparse.ArgumentParser(prog="mba_hunter", description="Chasse aux MacBook Air M2 sur eBay")
+    parser = argparse.ArgumentParser(prog="mba_hunter", description="Chasse aux MacBook M2 (Air et Pro) sur eBay")
     parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget", "probe", "test-telegram", "chat-id"], help=(
         "run : traite les clics Telegram en attente puis lance la recherche ; "
         "callbacks : traite uniquement les clics ; listen : écoute les clics en continu ; "
