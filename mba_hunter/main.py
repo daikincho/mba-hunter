@@ -161,12 +161,12 @@ def forget(db: Database, targets: List[str], everything: bool) -> int:
 
 def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(prog="mba_hunter", description="Chasse aux MacBook Air M2 sur eBay")
-    parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget", "probe", "test-telegram"], help=(
+    parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget", "probe", "test-telegram", "chat-id"], help=(
         "run : traite les clics Telegram en attente puis lance la recherche ; "
         "callbacks : traite uniquement les clics ; listen : écoute les clics en continu ; "
         "list : affiche les annonces en base ; forget ID… : retire des annonces de la base ; "
         "probe ID : diagnostique pourquoi une annonce eBay n'est pas trouvée ; "
-        "test-telegram : envoie un message de test"
+        "test-telegram : envoie un message de test ; chat-id : affiche ton TELEGRAM_CHAT_ID"
     ))
     parser.add_argument("targets", nargs="*", metavar="ID", help="forget : identifiant(s) d'annonce (voir `list`)")
     parser.add_argument("--all", action="store_true", dest="everything", help="forget : supprime toutes les annonces")
@@ -194,6 +194,17 @@ def main(argv: Optional[list] = None) -> int:
                 parser.error("forget : indique au moins un ID (voir `list`) ou --all")
             return forget(db, args.targets, args.everything)
 
+        if args.command == "chat-id":
+            secrets = load_secrets(need_ebay=False, need_chat_id=False)
+            chats = TelegramBot(secrets.telegram_bot_token, "").discover_chats()
+            if not chats:
+                print("Aucun message reçu. Écris quelque chose à ton bot dans Telegram, puis relance cette commande.")
+                print("(Le premier appel règle Telegram pour livrer aussi les messages : un message envoyé AVANT ne sera pas vu.)")
+                return 1
+            for chat in chats:
+                name = chat.get("title") or " ".join(filter(None, [chat.get("first_name"), chat.get("last_name")]))
+                print(f"TELEGRAM_CHAT_ID = {chat['id']}   ({chat.get('type')}, {name} {chat.get('username', '')})")
+            return 0
         if args.command == "test-telegram":
             secrets = load_secrets(need_ebay=False)
             try:

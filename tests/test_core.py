@@ -254,3 +254,20 @@ def test_cli_test_telegram_reports_bad_chat_id(monkeypatch, capsys):
     assert "chat not found" in capsys.readouterr().out
     monkeypatch.setattr(m.TelegramBot, "call", lambda self, method, **p: {"message_id": 1})
     assert m.main(["test-telegram"]) == 0
+
+
+def test_discover_chats_from_messages_and_clicks():
+    class Resp:
+        def json(self):
+            return {"ok": True, "result": [
+                {"update_id": 1, "message": {"chat": {"id": 42, "type": "private", "first_name": "Clovis"}}},
+                {"update_id": 2, "callback_query": {"message": {"chat": {"id": 42, "type": "private"}}}},
+                {"update_id": 3, "message": {"chat": {"id": -100, "type": "group", "title": "Groupe"}}},
+            ]}
+
+    bot = TelegramBot("t", "")
+    sent = {}
+    bot.session.post = lambda url, json=None, timeout=None: sent.update(json=json) or Resp()
+    assert [c["id"] for c in bot.discover_chats()] == [42, -100]      # dédoublonné
+    assert "offset" not in sent["json"]                                 # ne consomme rien
+    assert sent["json"]["allowed_updates"] == ["message", "callback_query"]

@@ -35,13 +35,13 @@ def _require(name: str) -> str:
     return value
 
 
-def load_secrets(need_ebay: bool = True, need_telegram: bool = True) -> Secrets:
+def load_secrets(need_ebay: bool = True, need_telegram: bool = True, need_chat_id: bool = True) -> Secrets:
     _load_dotenv()
     return Secrets(
         ebay_client_id=_require("EBAY_CLIENT_ID") if need_ebay else "",
         ebay_client_secret=_require("EBAY_CLIENT_SECRET") if need_ebay else "",
         telegram_bot_token=_require("TELEGRAM_BOT_TOKEN") if need_telegram else "",
-        telegram_chat_id=_require("TELEGRAM_CHAT_ID") if need_telegram else "",
+        telegram_chat_id=_require("TELEGRAM_CHAT_ID") if need_telegram and need_chat_id else "",
     )
 
 

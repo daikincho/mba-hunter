@@ -82,6 +82,25 @@ class TelegramBot:
                 handled += 1
         return handled
 
+    def discover_chats(self) -> List[Dict[str, Any]]:
+        """Conversations ayant écrit au bot (pour trouver TELEGRAM_CHAT_ID). Ne consomme aucune mise à jour."""
+        # Sans offset, rien n'est confirmé : les clics en attente restent disponibles pour `callbacks`.
+        resp = self.session.post(
+            f"{self.base}/getUpdates",
+            json={"timeout": 0, "allowed_updates": ["message", "callback_query"]},
+            timeout=20,
+        )
+        data = resp.json()
+        if not data.get("ok"):
+            raise TelegramError(f"getUpdates : {data.get('description', resp.text)}")
+        chats: Dict[Any, Dict[str, Any]] = {}
+        for update in data["result"]:
+            message = update.get("message") or (update.get("callback_query") or {}).get("message") or {}
+            chat = message.get("chat")
+            if chat:
+                chats[chat["id"]] = chat
+        return list(chats.values())
+
     def _get_updates(self, offset: int, wait: int) -> List[Dict[str, Any]]:
         resp = self.session.post(
             f"{self.base}/getUpdates",

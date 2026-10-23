@@ -9,7 +9,7 @@ on:
       command:
         description: "Commande à lancer"
         type: choice
-        options: [run, callbacks, list, forget, probe, test-telegram]
+        options: [run, callbacks, list, forget, probe, test-telegram, chat-id]
         default: run
       target:
         description: "forget : ID(s) d'annonce séparés par des espaces (voir `list`), ou « all » ; probe : numéro d'une annonce eBay"
