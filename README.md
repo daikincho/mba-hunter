@@ -63,8 +63,8 @@ La recherche couvre les annonces de **tous les pays** livrables en France (`ebay
 
 Workflow [.github/workflows/hunt.yml](.github/workflows/hunt.yml) :
 
-- **06:00 UTC chaque jour** : `run` (recherche complète) ;
-- **toutes les 4 h** : `callbacks`. Ce passage est nécessaire parce que Telegram ne conserve les clics que 24 h, et qu'aucun serveur n'écoute en continu. Après un clic, la réponse arrive donc dans les 4 h. Pour une réponse immédiate, lancer `listen` sur une machine allumée ;
+- **13h00 (heure de Paris) chaque jour** : `run` (recherche complète). `cron` ne connaît que l'UTC, donc deux déclenchements (11h et 12h UTC) existent et l'étape « Vérifier l'heure » ne garde que celui qui tombe à 13h à Paris, été comme hiver ;
+- les boutons Telegram sont désactivés (`telegram.buttons: false`) : il n'y a plus de passage `callbacks` automatique. S'ils reviennent, remettre dans le workflow un passage toutes les 4 h (Telegram ne conserve les clics que 24 h) ;
 - la base SQLite est recommitée dans le dépôt après chaque passage (`[skip ci]`).
 
 À configurer :

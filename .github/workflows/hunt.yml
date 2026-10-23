@@ -2,7 +2,10 @@ name: mba-hunter
 
 on:
   schedule:
-    - cron: "0 6 * * *"      # recherche quotidienne (08:00 Paris en été, 07:00 en hiver)
+    # Recherche quotidienne à 13h, heure de Paris. cron ne connaît que l'UTC (11h UTC en été, 12h UTC en hiver) :
+    # les deux horaires se déclenchent, et l'étape « Vérifier l'heure » ne laisse passer que celui qui tombe à 13h à Paris.
+    - cron: "0 11 * * *"
+    - cron: "0 12 * * *"
     # Boutons Telegram désactivés pour l'instant (telegram.buttons: false dans config.yaml).
     # Pour les réactiver, remettre ce passage, qui traite les clics (Telegram ne les garde que 24 h) :
     # - cron: "30 */4 * * *"
@@ -30,16 +33,29 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      - name: Vérifier l'heure (passages planifiés seulement)
+        id: guard
+        run: |
+          HOUR=$(TZ=Europe/Paris date +%H)
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$HOUR" != "13" ]; then
+            echo "Il est ${HOUR}h à Paris : ce déclenchement n'est pas celui de 13h, on passe."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v6
+        if: steps.guard.outputs.skip != 'true'
 
       - uses: actions/setup-python@v6
+        if: steps.guard.outputs.skip != 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - run: pip install -r requirements.txt
+        if: steps.guard.outputs.skip != 'true'
 
       - name: Lancer mba-hunter
+        if: steps.guard.outputs.skip != 'true'
         env:
           EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
           EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
@@ -51,10 +67,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CMD="${{ inputs.command }}"
-          elif [ "${{ github.event.schedule }}" = "0 6 * * *" ]; then
-            CMD=run
           else
-            CMD=callbacks
+            CMD=run   # passage planifié
           fi
           if [ "$CMD" = "forget" ]; then
             if [ "$TARGET" = "all" ]; then
@@ -70,7 +84,7 @@ jobs:
           fi
 
       - name: Sauvegarder la base SQLite
-        if: always()
+        if: always() && steps.guard.outputs.skip != 'true'
         run: |
           git config user.name "mba-hunter[bot]"
           git config user.email "mba-hunter[bot]@users.noreply.github.com"
