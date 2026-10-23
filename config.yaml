@@ -3,7 +3,7 @@
 
 ebay:
   marketplace: EBAY_FR
-  query: "MacBook Air"            # TEMPORAIRE (test large) — remettre "MacBook Air M2"
+  query: "MacBook Air M2"
   category_ids: ""              # vide = toutes catégories (les IDs diffèrent selon le site eBay ; filtrage par titre ci-dessous)
   buying_options: AUCTION       # enchères uniquement
   sort: endingSoonest
@@ -13,12 +13,12 @@ ebay:
   sandbox: false
 
 filters:
-  max_price: 1200               # TEMPORAIRE (test de la chaîne complète) — remettre 650
+  max_price: 650                # EUR — enchère actuelle (+ port si include_shipping) à ne pas dépasser
   include_shipping: true
   min_hours_left: 1             # ignore les enchères qui se terminent trop tôt pour agir
   # Expressions régulières, insensibles à la casse.
   required_patterns:
-    # - '\bm2\b'                # TEMPORAIRE (test large) — réactiver
+    - '\bm2\b'
     - '\bair\b'
   excluded_patterns:
     - '\bm1\b'
