@@ -46,14 +46,18 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
     max_analyses = claude_cfg.get("max_analyses_per_run", 25)
     min_score = claude_cfg.get("min_score_to_notify", 50)
     analyzed = notified = 0
+    rejected: Dict[str, int] = {}
+    known = 0
 
     for listing in listings:
         if db.is_known(listing.item_id):
             db.refresh_price(listing)
+            known += 1
             continue
         keep, reason = check_listing(listing, filters)
         if not keep:
             log.debug("Écartée %s (%s) : %s", listing.item_id, listing.title, reason)
+            rejected[reason] = rejected.get(reason, 0) + 1
             continue
         if analyzed >= max_analyses:
             log.info("Limite de %d analyses atteinte, le reste attendra le prochain passage", max_analyses)
@@ -89,7 +93,12 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
             log.error("Envoi Telegram impossible pour %s : %s", listing.item_id, e)
             db.save(listing, "error", analysis, error=str(e))
 
-    log.info("Terminé : %d annonce(s) analysée(s), %d notifiée(s)", analyzed, notified)
+    if listings and not (analyzed or known):
+        log.warning("Les %d annonces trouvées ont toutes été écartées par les filtres", len(listings))
+    for reason, count in sorted(rejected.items(), key=lambda kv: -kv[1]):
+        log.info("  %3d écartée(s) — %s", count, reason)
+    log.info("Terminé : %d trouvée(s), %d déjà connue(s), %d écartée(s), %d analysée(s), %d notifiée(s)",
+             len(listings), known, sum(rejected.values()), analyzed, notified)
 
 
 def main(argv: Optional[list] = None) -> int:
