@@ -119,32 +119,42 @@ class EbayClient:
         limit: int = 100,
         max_pages: int = 1,
         delivery_country: str = "",
+        item_location_region: str = "",
         item_location_countries: Sequence[str] = (),
+        buyer_location: str = "",
     ) -> List[Listing]:
-        """Recherche par défaut, puis une recherche par pays de vendeur ; résultats fusionnés sans doublon.
+        """Recherche eBay, résultats fusionnés sans doublon.
 
-        Sur EBAY_FR, la recherche par défaut ne remonte qu'une partie des annonces : celles d'autres pays
-        n'apparaissent qu'avec le filtre itemLocationCountry (constaté avec `probe`).
+        Sur EBAY_FR, la recherche par défaut ne remonte qu'une partie des annonces (constaté avec `probe`) :
+        celles d'autres pays n'apparaissent qu'avec itemLocationRegion (ex. WORLDWIDE) ou itemLocationCountry.
+        Ces deux filtres sont incompatibles entre eux : chacun a donc sa propre passe.
         """
+        headers = {"X-EBAY-C-ENDUSERCTX": f"contextualLocation={buyer_location}"} if buyer_location else None
+        passes = [("défaut", "", "")]
+        if item_location_region:
+            passes.append((item_location_region, item_location_region, ""))
+        passes += [(str(c).strip().upper(), "", str(c).strip().upper()) for c in item_location_countries]
+
         found: Dict[str, Listing] = {}
-        per_country: Dict[str, int] = {}
-        for country in ["", *(str(c).strip().upper() for c in item_location_countries)]:
+        per_pass: Dict[str, int] = {}
+        for label, region, country in passes:
             try:
                 batch = self._search_once(query, max_price, category_ids, buying_options, sort, limit,
-                                          max_pages, delivery_country, country)
+                                          max_pages, delivery_country, region, country, headers)
             except EbayError as e:
-                if not country:  # la recherche par défaut doit marcher (sinon : identifiants, quota…)
+                if label == "défaut":  # cette passe doit marcher (sinon : identifiants, quota…)
                     raise
-                log.warning("eBay : pays %s ignoré (%s)", country, e)
+                log.warning("eBay : passe %s ignorée (%s)", label, e)
                 continue
-            per_country[country or "défaut"] = len(batch)
+            per_pass[label] = len(batch)
             for listing in batch:
                 found.setdefault(listing.item_id, listing)
-        log.info("eBay : %d annonces uniques pour %r — par pays : %s", len(found), query, per_country)
+        log.info("eBay : %d annonces uniques pour %r — par passe : %s", len(found), query, per_pass)
         return sorted(found.values(), key=lambda l: l.end_date or "")
 
     def _search_once(self, query: str, max_price: float, category_ids: str, buying_options: str, sort: str,
-                     limit: int, max_pages: int, delivery_country: str, location_country: str) -> List[Listing]:
+                     limit: int, max_pages: int, delivery_country: str, location_region: str,
+                     location_country: str, headers: Optional[Dict[str, str]]) -> List[Listing]:
         filters = [
             f"buyingOptions:{{{buying_options}}}",
             f"price:[..{max_price:g}]",
@@ -152,6 +162,8 @@ class EbayClient:
         ]
         if delivery_country:
             filters.append(f"deliveryCountry:{delivery_country}")
+        if location_region:
+            filters.append(f"itemLocationRegion:{location_region}")
         if location_country:
             filters.append(f"itemLocationCountry:{location_country}")
         params: Dict[str, Any] = {"q": query, "filter": ",".join(filters), "sort": sort, "limit": min(limit, 200)}
@@ -161,7 +173,7 @@ class EbayClient:
         listings: List[Listing] = []
         for page in range(max_pages):
             params["offset"] = page * params["limit"]
-            data = self._get("/item_summary/search", params)
+            data = self._get("/item_summary/search", params, headers)
             items = data.get("itemSummaries", [])
             if page == 0:
                 log.debug("eBay : total=%s, paramètres=%s", data.get("total"), params)

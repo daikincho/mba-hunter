@@ -8,16 +8,15 @@ ebay:
   buying_options: AUCTION       # enchères uniquement
   sort: endingSoonest
   delivery_country: FR          # annonces livrables dans ce pays ("" = pas de filtre)
-  # Pays de vendeur interrogés EN PLUS de la recherche par défaut (1 appel eBay par pays et par passage).
-  # Sur EBAY_FR, la recherche par défaut ne remonte pas les annonces étrangères : il faut les demander pays par pays.
-  # Codes ISO à 2 lettres ; ajoute ou retire des pays à volonté.
-  item_location_countries:
-    ["FR", "DE", "IT", "ES", "BE", "NL", "LU", "AT", "PT", "IE", "PL", "CZ", "SK", "SI", "HR", "HU", "RO", "BG", "GR", "SE", "DK", "FI", "EE", "LV", "LT", "CY", "MT", "GB", "CH", "NO"]
-  # (codes entre guillemets : sans eux, YAML lit NO comme « non »)
-  limit: 100                    # résultats par page (max 200)
-  max_pages: 2
-  fetch_details: true           # récupère la description complète (1 appel par annonce retenue)
-  sandbox: false
+  # Provenance des annonces. Sur EBAY_FR, la recherche par défaut ne remonte pas les annonces étrangères :
+  # WORLDWIDE = « Monde entier » dans l'appli (autres valeurs : EUROPEAN_UNION, CONTINENTAL_EUROPE,
+  # UK_AND_IRELAND, NORTH_AMERICA, ASIA, BORDER_COUNTRIES ; "" = désactivé).
+  item_location_region: WORLDWIDE
+  # Position de l'acheteur, recommandée par eBay avec WORLDWIDE (influence aussi l'estimation du port).
+  buyer_location: "country=FR,zip=75001"
+  # Alternative : un appel par pays de vendeur (codes ISO entre guillemets : sans eux, YAML lit NO comme « non »).
+  # N'utiliser que si le filtre de région ne suffit pas. Exemple : ["DE", "IT", "ES", "BE", "NL"]
+  item_location_countries: []
 
 filters:
   max_price: 650                # EUR — plafond d'enchère

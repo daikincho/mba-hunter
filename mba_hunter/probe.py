@@ -61,12 +61,13 @@ def run_probe(client: EbayClient, config: Dict[str, Any], raw_item_id: str) -> i
     # (libellé, paramètres, en-têtes, place de marché)
     variants: List[Tuple[str, Dict[str, Any], Optional[Dict[str, str]], Optional[str]]] = [
         (f"référence : {query!r} + enchère", {"q": query, "filter": auction}, None, None),
-        ("+ itemLocationCountry:DE", {"q": query, "filter": f"{auction},itemLocationCountry:DE"}, None, None),
-        ("+ itemLocationCountry:DE + deliveryCountry:FR",
-         {"q": query, "filter": f"{auction},itemLocationCountry:DE,deliveryCountry:FR"}, None, None),
-        ("+ itemLocationCountry:{DE|IT|ES} (plusieurs pays)",
-         {"q": query, "filter": f"{auction},itemLocationCountry:{{DE|IT|ES}}"}, None, None),
-        ("+ itemLocationCountry:FR", {"q": query, "filter": f"{auction},itemLocationCountry:FR"}, None, None),
+        ("+ itemLocationRegion:WORLDWIDE", {"q": query, "filter": f"{auction},itemLocationRegion:WORLDWIDE"}, None, None),
+        ("+ WORLDWIDE + en-tête acheteur FR", {"q": query, "filter": f"{auction},itemLocationRegion:WORLDWIDE"}, FR_CONTEXT, None),
+        ("+ WORLDWIDE + en-tête FR + deliveryCountry:FR",
+         {"q": query, "filter": f"{auction},itemLocationRegion:WORLDWIDE,deliveryCountry:FR"}, FR_CONTEXT, None),
+        ("+ itemLocationRegion:EUROPEAN_UNION + en-tête FR",
+         {"q": query, "filter": f"{auction},itemLocationRegion:EUROPEAN_UNION"}, FR_CONTEXT, None),
+        ("+ itemLocationCountry:DE (pour comparaison)", {"q": query, "filter": f"{auction},itemLocationCountry:DE"}, None, None),
     ]
     print("\n=== Recherches ===")
     clients: Dict[str, EbayClient] = {}

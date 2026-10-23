@@ -55,7 +55,7 @@ Réglages dans [config.yaml](config.yaml) : `filters.max_price`, motifs d'exclus
 
 Une annonce est notifiée si `score >= min_score_to_notify` **et** si le `prix_max` conseillé dépasse l'enchère actuelle. Le `prix_max` renvoyé par Claude est plafonné à `max_price`. Les frais de port ne comptent pas dans ce plafond (`filters.include_shipping: false`) ; mets `true` pour les inclure.
 
-La recherche couvre les annonces de **tous les pays** livrables en France (`ebay.delivery_country: FR`).
+La recherche couvre les annonces de **tous les pays** livrables en France (`ebay.delivery_country: FR`) et de tout pays de vendeur (`ebay.item_location_region: WORLDWIDE`, équivalent de « Provenance : Monde entier » dans l'appli).
 
 ## GitHub Actions
 
