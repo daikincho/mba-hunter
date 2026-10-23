@@ -182,7 +182,8 @@ def format_listing_message(listing: Listing, analysis: Analysis) -> str:
         "",
         f"⭐ Score : <b>{analysis.score}/100</b> — {RECO_LABELS.get(analysis.recommandation, analysis.recommandation)}",
         f"💶 Enchère actuelle : {listing.current_price:.2f} € (+ port {shipping}) — {listing.bid_count} enchère(s)",
-        f"🎯 Prix max conseillé : <b>{analysis.prix_max:.2f} €</b> (hors port)",
+        (f"🎯 Prix max conseillé : <b>{analysis.prix_max:.2f} €</b> (hors port)" if analysis.prix_max > 0
+         else "🎯 Prix max conseillé : <b>aucun</b> (Claude déconseille cette annonce)"),
         f"⏰ Fin : {_fmt_date(listing.end_date)}",
         f"👤 {_esc(listing.seller)} ({listing.seller_feedback_pct}% / {listing.seller_feedback_score})",
         "",

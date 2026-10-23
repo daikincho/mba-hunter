@@ -282,3 +282,12 @@ def test_listing_message_has_buttons_only_when_enabled():
     assert "reply_markup" not in sent[0]
     assert sent[1]["reply_markup"]["inline_keyboard"][0][0]["callback_data"].startswith("ok:")
     assert "580.00" in sent[0]["text"] and "https://www.ebay.fr/itm/123" in sent[0]["text"]
+
+
+def test_message_for_listing_claude_advises_against():
+    from mba_hunter.telegram import format_listing_message
+
+    avoid = make_analysis(prix_max=0.0)
+    avoid.recommandation, avoid.score = "eviter", 8
+    text = format_listing_message(make_listing(), avoid)
+    assert "aucun" in text and "0.00 €" not in text and "8/100" in text

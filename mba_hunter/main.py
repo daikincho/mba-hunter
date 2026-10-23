@@ -90,7 +90,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
         analyzed += 1
 
         total_now = listing.total_price(filters.get("include_shipping", False))
-        worth_it = analysis.score >= min_score and analysis.prix_max > listing.current_price
+        worth_it = analysis.score >= min_score
         log.info("%s — score %d, prix max %.2f €, actuel %.2f €", listing.title, analysis.score,
                  analysis.prix_max, total_now)
         if not worth_it:
