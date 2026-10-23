@@ -9,10 +9,10 @@ on:
       command:
         description: "Commande à lancer"
         type: choice
-        options: [run, callbacks, list, forget]
+        options: [run, callbacks, list, forget, probe]
         default: run
       target:
-        description: "forget : ID(s) d'annonce séparés par des espaces (voir `list`), ou « all » pour tout vider"
+        description: "forget : ID(s) d'annonce séparés par des espaces (voir `list`), ou « all » ; probe : numéro d'une annonce eBay"
         type: string
         default: ""
 
@@ -61,6 +61,8 @@ jobs:
               # $TARGET volontairement sans guillemets : une liste d'IDs séparés par des espaces
               python -m mba_hunter forget $TARGET
             fi
+          elif [ "$CMD" = "probe" ]; then
+            python -m mba_hunter probe "$TARGET"
           else
             python -m mba_hunter "$CMD"
           fi

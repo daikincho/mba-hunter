@@ -35,6 +35,7 @@ python -m mba_hunter listen          # écoute les clics en continu (réponse im
 python -m mba_hunter list            # affiche les annonces en base (--status notified|validated|refused|skipped|error)
 python -m mba_hunter forget 123456   # retire une annonce de la base (ID de la colonne ID de `list`)
 python -m mba_hunter forget --all    # vide la base
+python -m mba_hunter probe 123456    # diagnostic : pourquoi cette annonce eBay n'est-elle pas trouvée ?
 pytest                               # tests (pip install pytest)
 ```
 
@@ -45,6 +46,7 @@ et renotifiée si elle est toujours dans les résultats eBay et passe les filtre
 
 Depuis GitHub, sans toucher à ton Mac : onglet *Actions → mba-hunter → Run workflow*, puis
 - `command = list` : le tableau des annonces apparaît dans le log de l'étape « Lancer mba-hunter » ;
+- `command = probe` et `target = 123456` (numéro de l'annonce sur eBay) : affiche l'annonce vue par l'API, puis teste plusieurs variantes de recherche pour voir à quelle étape elle disparaît ;
 - `command = forget` et `target = 123456` (plusieurs IDs séparés par des espaces, ou `all`) : le workflow supprime les lignes et recommite la base.
 
 En local, fais d'abord `git pull` (le bot recommite la base) et pense à pousser la base modifiée.

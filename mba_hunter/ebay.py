@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import requests
+from urllib.parse import quote
 
 log = logging.getLogger(__name__)
 
@@ -137,9 +138,15 @@ class EbayClient:
         log.info("eBay : %d annonces trouvées pour %r", len(listings), query)
         return listings
 
+    def get_item(self, item_id: str) -> Dict[str, Any]:
+        return self._get(f"/item/{quote(item_id, safe='')}")
+
+    def search_raw(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        return self._get("/item_summary/search", params)
+
     def enrich(self, listing: Listing) -> Listing:
         """Ajoute description, caractéristiques et état détaillé via getItem."""
-        data = self._get(f"/item/{listing.item_id}")
+        data = self.get_item(listing.item_id)
         listing.description = html_to_text(data.get("description", ""))
         listing.condition_description = data.get("conditionDescription", "") or ""
         listing.aspects = {a["name"]: a["value"] for a in data.get("localizedAspects", []) if "name" in a}

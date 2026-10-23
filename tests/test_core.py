@@ -159,3 +159,27 @@ def test_cli_list_and_forget(tmp_path, capsys):
     assert "Aucune annonce" in capsys.readouterr().out
     with pytest.raises(SystemExit):                                     # ni ID ni --all
         m.main(["forget", "--config", str(cfg_file)])
+
+
+def test_probe_reports_where_listing_disappears(capsys):
+    from mba_hunter.probe import normalize_item_id, run_probe
+
+    assert normalize_item_id("336854225095") == "v1|336854225095|0"
+    assert normalize_item_id("v1|1|0") == "v1|1|0"
+
+    class FakeClient:
+        def get_item(self, item_id):
+            return {"title": "MacBook Air M2 13 256Go", "buyingOptions": ["AUCTION"],
+                    "currentBidPrice": {"value": "561.00", "currency": "EUR"}, "bidCount": 4}
+
+        def search_raw(self, params):
+            # l'annonce n'apparaît que lorsque le filtre de prix est retiré
+            found = "price:[" not in params.get("filter", "")
+            items = [{"itemId": "v1|336854225095|0"}] if found else []
+            return {"total": len(items), "itemSummaries": items}
+
+    run_probe(FakeClient(), load_config(), "336854225095")
+    out = capsys.readouterr().out
+    assert "561.00 EUR" in out
+    assert "tous les filtres : total=0 → absente" in out
+    assert "sans filtre de prix : total=1 → TROUVÉE (position 1)" in out

@@ -13,6 +13,7 @@ from .config import ROOT, load_config, load_secrets
 from .db import Database
 from .ebay import EbayClient, EbayError
 from .filters import check_listing
+from .probe import run_probe
 from .telegram import TelegramBot, TelegramError, format_listing_message
 
 log = logging.getLogger("mba_hunter")
@@ -151,10 +152,11 @@ def forget(db: Database, targets: List[str], everything: bool) -> int:
 
 def main(argv: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(prog="mba_hunter", description="Chasse aux MacBook Air M2 sur eBay")
-    parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget"], help=(
+    parser.add_argument("command", choices=["run", "callbacks", "listen", "list", "forget", "probe"], help=(
         "run : traite les clics Telegram en attente puis lance la recherche ; "
         "callbacks : traite uniquement les clics ; listen : écoute les clics en continu ; "
-        "list : affiche les annonces en base ; forget ID… : retire des annonces de la base"
+        "list : affiche les annonces en base ; forget ID… : retire des annonces de la base ; "
+        "probe ID : diagnostique pourquoi une annonce eBay n'est pas trouvée"
     ))
     parser.add_argument("targets", nargs="*", metavar="ID", help="forget : identifiant(s) d'annonce (voir `list`)")
     parser.add_argument("--all", action="store_true", dest="everything", help="forget : supprime toutes les annonces")
@@ -181,6 +183,15 @@ def main(argv: Optional[list] = None) -> int:
             if not args.targets and not args.everything:
                 parser.error("forget : indique au moins un ID (voir `list`) ou --all")
             return forget(db, args.targets, args.everything)
+
+        if args.command == "probe":
+            if len(args.targets) != 1:
+                parser.error("probe : indique le numéro de l'annonce eBay (ex. 336854225095)")
+            secrets = load_secrets(need_telegram=False)
+            client = EbayClient(secrets.ebay_client_id, secrets.ebay_client_secret,
+                                marketplace=config["ebay"].get("marketplace", "EBAY_FR"),
+                                sandbox=config["ebay"].get("sandbox", False))
+            return run_probe(client, config, args.targets[0])
 
         bot = None
         if not (args.dry_run and args.command == "run"):
