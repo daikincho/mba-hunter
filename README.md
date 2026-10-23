@@ -3,7 +3,7 @@
 Veille quotidienne des **enchères eBay.fr de MacBook Air M2 13"** :
 
 1. recherche via l'eBay Browse API (`EBAY_FR`, enchères uniquement) ;
-2. filtre par titre (regex) et par prix max (`config.yaml`, port inclus) ;
+2. filtre par titre (regex) et par prix max (`config.yaml`, frais de port exclus par défaut) ;
 3. analyse de chaque annonce par Claude → JSON `score` / `risques` / `prix_max` / `resume` / `recommandation` ;
 4. stockage en SQLite (`data/mba_hunter.db`) ;
 5. notification Telegram avec boutons **✅ Valider** / **❌ Refuser**.
@@ -53,7 +53,9 @@ En local, fais d'abord `git pull` (le bot recommite la base) et pense à pousser
 
 Réglages dans [config.yaml](config.yaml) : `filters.max_price`, motifs d'exclusion, modèle et effort Claude, score minimum pour notifier, nombre max d'analyses par passage.
 
-Une annonce est notifiée si `score >= min_score_to_notify` **et** si le `prix_max` conseillé dépasse l'enchère actuelle. Le `prix_max` renvoyé par Claude est plafonné à `max_price − frais de port`.
+Une annonce est notifiée si `score >= min_score_to_notify` **et** si le `prix_max` conseillé dépasse l'enchère actuelle. Le `prix_max` renvoyé par Claude est plafonné à `max_price`. Les frais de port ne comptent pas dans ce plafond (`filters.include_shipping: false`) ; mets `true` pour les inclure.
+
+La recherche couvre les annonces de **tous les pays** livrables en France (`ebay.delivery_country: FR`).
 
 ## GitHub Actions
 

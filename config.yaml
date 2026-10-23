@@ -7,14 +7,15 @@ ebay:
   category_ids: ""              # vide = toutes catégories (les IDs diffèrent selon le site eBay ; filtrage par titre ci-dessous)
   buying_options: AUCTION       # enchères uniquement
   sort: endingSoonest
+  delivery_country: FR          # annonces livrables dans ce pays, quel que soit le pays du vendeur ("" = pas de filtre)
   limit: 100                    # résultats par page (max 200)
   max_pages: 2
   fetch_details: true           # récupère la description complète (1 appel par annonce retenue)
   sandbox: false
 
 filters:
-  max_price: 650                # EUR — enchère actuelle (+ port si include_shipping) à ne pas dépasser
-  include_shipping: true
+  max_price: 650                # EUR — plafond d'enchère
+  include_shipping: false       # false : les frais de port ne comptent pas dans le plafond
   min_hours_left: 1             # ignore les enchères qui se terminent trop tôt pour agir
   # Expressions régulières, insensibles à la casse.
   required_patterns:

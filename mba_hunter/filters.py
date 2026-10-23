@@ -18,7 +18,7 @@ def check_listing(listing: Listing, filters: Dict[str, Any]) -> Tuple[bool, Opti
 
     if listing.currency != "EUR":
         return False, f"devise {listing.currency}"
-    total = listing.total_price(filters.get("include_shipping", True))
+    total = listing.total_price(filters.get("include_shipping", False))
     if total > filters["max_price"]:
         return False, f"prix {total:.2f} € > max {filters['max_price']} €"
 

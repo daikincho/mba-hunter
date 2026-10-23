@@ -26,8 +26,9 @@ Pour chaque annonce, évalue :
 
 Champs attendus :
 - score : entier de 0 à 100, attractivité globale de l'affaire (conformité × état × risque × marge de prix) ;
-- prix_max : enchère maximale conseillée en euros, frais de port EXCLUS, sans jamais dépasser le budget indiqué \
-  (budget moins frais de port). Mets 0 si l'annonce est à éviter ;
+- prix_max : enchère maximale conseillée en euros, frais de port EXCLUS, sans jamais dépasser l'enchère maximale autorisée \
+  indiquée dans l'annonce. Les frais de port ne comptent pas dans ce plafond, mais tiens-en compte pour juger \
+  si l'affaire est bonne (coût réel = enchère + port). Mets 0 si l'annonce est à éviter ;
 - risques : liste courte et concrète des risques identifiés (vide si aucun) ;
 - points_positifs : liste courte des atouts ;
 - resume : 2 phrases maximum, en français ;
@@ -68,11 +69,11 @@ class Analysis:
         return json.dumps(self.__dict__, ensure_ascii=False)
 
 
-def format_listing(listing: Listing, budget: float) -> str:
+def format_listing(listing: Listing, max_bid: float) -> str:
     shipping = f"{listing.shipping:.2f} €" if listing.shipping is not None else "non précisés"
     hours = listing.hours_left()
     lines = [
-        f"Budget maximum de l'acheteur (port inclus) : {budget:.2f} €",
+        f"Enchère maximale autorisée (hors frais de port) : {max_bid:.2f} €",
         "",
         f"Titre : {listing.title}",
         f"Enchère actuelle : {listing.current_price:.2f} {listing.currency} ({listing.bid_count} enchère(s))",
@@ -101,7 +102,7 @@ class Analyzer:
         self.model = model
         self.effort = effort
 
-    def analyze(self, listing: Listing, budget: float) -> Analysis:
+    def analyze(self, listing: Listing, max_bid: float) -> Analysis:
         try:
             # fallbacks="default" : si le modèle décline la requête, l'API la relance
             # automatiquement sur le modèle de repli recommandé.
@@ -115,7 +116,7 @@ class Analyzer:
                     "effort": self.effort,
                     "format": {"type": "json_schema", "schema": ANALYSIS_SCHEMA},
                 },
-                messages=[{"role": "user", "content": format_listing(listing, budget)}],
+                messages=[{"role": "user", "content": format_listing(listing, max_bid)}],
             )
         except anthropic.RateLimitError as e:
             raise AnalysisError(f"limite de débit Claude atteinte : {e}") from e
@@ -134,11 +135,10 @@ class Analyzer:
             raise AnalysisError("aucun texte dans la réponse")
         data = json.loads(text)
 
-        shipping = listing.shipping or 0.0
         return Analysis(
             score=max(0, min(100, int(data["score"]))),
-            # Le prix conseillé ne dépasse jamais le budget configuré.
-            prix_max=round(max(0.0, min(float(data["prix_max"]), budget - shipping)), 2),
+            # Le prix conseillé ne dépasse jamais l'enchère maximale autorisée.
+            prix_max=round(max(0.0, min(float(data["prix_max"]), max_bid)), 2),
             risques=list(data["risques"]),
             points_positifs=list(data["points_positifs"]),
             resume=data["resume"],

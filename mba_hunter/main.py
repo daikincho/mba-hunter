@@ -43,6 +43,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
         sort=ebay_cfg.get("sort", "endingSoonest"),
         limit=ebay_cfg.get("limit", 100),
         max_pages=ebay_cfg.get("max_pages", 1),
+        delivery_country=ebay_cfg.get("delivery_country", ""),
     )
 
     analyzer = Analyzer(model=claude_cfg["model"], effort=claude_cfg.get("effort", "medium"))
@@ -70,7 +71,8 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
         try:
             if ebay_cfg.get("fetch_details", True):
                 ebay.enrich(listing)
-            analysis = analyzer.analyze(listing, budget)
+            max_bid = budget - ((listing.shipping or 0.0) if filters.get("include_shipping", False) else 0.0)
+            analysis = analyzer.analyze(listing, max_bid)
         except (AnalysisError, EbayError, requests.RequestException) as e:  # une annonce en échec ne bloque pas les autres
             log.error("Analyse impossible pour %s : %s", listing.item_id, e)
             db.save(listing, "error", error=str(e))
@@ -83,7 +85,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
         failures = 0
         analyzed += 1
 
-        total_now = listing.total_price(filters.get("include_shipping", True))
+        total_now = listing.total_price(filters.get("include_shipping", False))
         worth_it = analysis.score >= min_score and analysis.prix_max > listing.current_price
         log.info("%s — score %d, prix max %.2f €, actuel %.2f €", listing.title, analysis.score,
                  analysis.prix_max, total_now)

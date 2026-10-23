@@ -44,9 +44,29 @@ def test_title_filters(filters, title, expected):
     assert check_listing(make_listing(title=title), filters)[0] is expected
 
 
-def test_price_filter_includes_shipping(filters):
+def test_shipping_excluded_from_cap_by_default(filters):
+    assert filters["include_shipping"] is False
+    assert check_listing(make_listing(price=640, shipping=30), filters)[0]
+    assert not check_listing(make_listing(price=660, shipping=0), filters)[0]
+
+
+def test_shipping_included_when_enabled(filters):
+    filters = filters | {"include_shipping": True}
     assert check_listing(make_listing(price=640, shipping=5), filters)[0]
     assert not check_listing(make_listing(price=640, shipping=15), filters)[0]
+
+
+def test_search_filters_delivery_country_not_seller_country():
+    from mba_hunter.ebay import EbayClient
+
+    seen = {}
+    client = EbayClient("a", "b")
+    client._get = lambda path, params=None, extra_headers=None: seen.update(params) or {}
+    client.search("MacBook M2", 650, delivery_country="FR")
+    assert "deliveryCountry:FR" in seen["filter"]
+    assert "itemLocationCountry" not in seen["filter"]
+    client.search("MacBook M2", 650)
+    assert "deliveryCountry" not in seen["filter"]
 
 
 def test_ending_too_soon(filters):

@@ -118,12 +118,15 @@ class EbayClient:
         sort: str = "endingSoonest",
         limit: int = 100,
         max_pages: int = 1,
+        delivery_country: str = "",
     ) -> List[Listing]:
         filters = [
             f"buyingOptions:{{{buying_options}}}",
             f"price:[..{max_price:g}]",
             "priceCurrency:EUR",
         ]
+        if delivery_country:
+            filters.append(f"deliveryCountry:{delivery_country}")
         params: Dict[str, Any] = {"q": query, "filter": ",".join(filters), "sort": sort, "limit": min(limit, 200)}
         if category_ids:
             params["category_ids"] = category_ids
