@@ -4,7 +4,7 @@
 ebay:
   marketplace: EBAY_FR
   query: "MacBook M2"
-  category_ids: ""              # vide = toutes catégories (les IDs diffèrent selon le site eBay ; filtrage par titre ci-dessous)
+  category_ids: "111422"        # « Macs portables » (Apple Notebooks) : écarte voitures miniatures M2 Machines, accessoires…
   buying_options: AUCTION       # enchères uniquement
   sort: endingSoonest
   delivery_country: FR          # annonces livrables dans ce pays ("" = pas de filtre)
@@ -35,6 +35,8 @@ filters:
     - '\bhs\b'
     - 'for parts'
     - 'pour pi[eè]ces'
+    - '\bm2 machines\b'
+    - '(diecast|miniature|1[:/]64|1[:/]24|1[:/]18)'
     - 'bo[iî]te vide'
     - '\b(coque|housse|chargeur seul|clavier seul)\b'
 

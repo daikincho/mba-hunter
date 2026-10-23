@@ -39,6 +39,8 @@ def filters():
     ("Coque MacBook Air M2 13", False),
     ("MacBook Pro M2 13", True),   # plus de motif « air » requis : seul M2 compte
     ("Ordinateur portable 13 pouces", False),
+    ("M2 Machines 1971 Nissan Skyline GT-R CHASE Auto Japan 31500", False),
+    ("Miniature diecast 1:64 M2 Skyline", False),
 ])
 def test_title_filters(filters, title, expected):
     assert check_listing(make_listing(title=title), filters)[0] is expected
