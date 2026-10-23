@@ -17,6 +17,8 @@ from .telegram import TelegramBot, TelegramError, format_listing_message
 
 log = logging.getLogger("mba_hunter")
 
+MAX_CONSECUTIVE_FAILURES = 3
+
 
 def open_db(config: Dict[str, Any]) -> Database:
     return Database(ROOT / config["database"]["path"])
@@ -48,6 +50,7 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
     analyzed = notified = 0
     rejected: Dict[str, int] = {}
     known = 0
+    failures = errors = 0  # échecs d'analyse consécutifs / au total
 
     for listing in listings:
         if db.is_known(listing.item_id):
@@ -70,7 +73,13 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
         except (AnalysisError, EbayError, requests.RequestException) as e:  # une annonce en échec ne bloque pas les autres
             log.error("Analyse impossible pour %s : %s", listing.item_id, e)
             db.save(listing, "error", error=str(e))
+            failures += 1
+            errors += 1
+            if failures >= MAX_CONSECUTIVE_FAILURES:
+                log.error("%d échecs consécutifs, arrêt du passage (problème de configuration ?)", failures)
+                break
             continue
+        failures = 0
         analyzed += 1
 
         total_now = listing.total_price(filters.get("include_shipping", True))
@@ -93,12 +102,12 @@ def hunt(config: Dict[str, Any], db: Database, bot: Optional[TelegramBot]) -> No
             log.error("Envoi Telegram impossible pour %s : %s", listing.item_id, e)
             db.save(listing, "error", analysis, error=str(e))
 
-    if listings and not (analyzed or known):
+    if listings and not (analyzed or known or errors):
         log.warning("Les %d annonces trouvées ont toutes été écartées par les filtres", len(listings))
     for reason, count in sorted(rejected.items(), key=lambda kv: -kv[1]):
         log.info("  %3d écartée(s) — %s", count, reason)
-    log.info("Terminé : %d trouvée(s), %d déjà connue(s), %d écartée(s), %d analysée(s), %d notifiée(s)",
-             len(listings), known, sum(rejected.values()), analyzed, notified)
+    log.info("Terminé : %d trouvée(s), %d déjà connue(s), %d écartée(s), %d analysée(s), %d en erreur, %d notifiée(s)",
+             len(listings), known, sum(rejected.values()), analyzed, errors, notified)
 
 
 def main(argv: Optional[list] = None) -> int:

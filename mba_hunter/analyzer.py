@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass
 from typing import List
 
@@ -93,7 +94,10 @@ def format_listing(listing: Listing, budget: float) -> str:
 
 class Analyzer:
     def __init__(self, model: str = "claude-opus-5-5", effort: str = "medium"):
-        self.client = anthropic.Anthropic()
+        # Une clé API non rattachée à un workspace exige l'en-tête anthropic-workspace-id.
+        workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID", "").strip()
+        headers = {"anthropic-workspace-id": workspace_id} if workspace_id else None
+        self.client = anthropic.Anthropic(default_headers=headers)
         self.model = model
         self.effort = effort
 
