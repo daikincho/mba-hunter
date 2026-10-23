@@ -13,7 +13,7 @@ ebay:
   sandbox: false
 
 filters:
-  max_price: 650                # EUR — enchère actuelle (+ port si include_shipping) à ne pas dépasser
+  max_price: 1200               # TEMPORAIRE (test de la chaîne complète) — remettre 650
   include_shipping: true
   min_hours_left: 1             # ignore les enchères qui se terminent trop tôt pour agir
   # Expressions régulières, insensibles à la casse.
