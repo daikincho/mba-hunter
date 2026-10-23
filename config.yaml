@@ -44,7 +44,7 @@ claude:
   model: claude-opus-5-5
   effort: medium                # low | medium | high | xhigh | max
   max_analyses_per_run: 25      # garde-fou sur le coût
-  min_score_to_notify: 50       # 0-100
+  min_score_to_notify: 0        # 0 = le score est affiché mais ne bloque jamais l'envoi (mettre p. ex. 50 pour filtrer)
 
 database:
   path: data/mba_hunter.db

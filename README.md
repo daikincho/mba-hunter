@@ -55,7 +55,7 @@ En local, fais d'abord `git pull` (le bot recommite la base) et pense à pousser
 
 Réglages dans [config.yaml](config.yaml) : `filters.max_price`, motifs d'exclusion, modèle et effort Claude, score minimum pour notifier, nombre max d'analyses par passage.
 
-Une annonce est notifiée si `score >= min_score_to_notify` **et** si le `prix_max` conseillé dépasse l'enchère actuelle. Le `prix_max` renvoyé par Claude est plafonné à `max_price`. Les frais de port ne comptent pas dans ce plafond (`filters.include_shipping: false`) ; mets `true` pour les inclure.
+Une annonce est notifiée si le `prix_max` conseillé par Claude dépasse l'enchère actuelle, et si `score >= min_score_to_notify` (0 par défaut : le score est affiché mais ne filtre rien). Le `prix_max` renvoyé par Claude est plafonné à `max_price`. Les frais de port ne comptent pas dans ce plafond (`filters.include_shipping: false`) ; mets `true` pour les inclure.
 
 La recherche couvre les annonces de **tous les pays** livrables en France (`ebay.delivery_country: FR`) et de tout pays de vendeur (`ebay.item_location_region: WORLDWIDE`, équivalent de « Provenance : Monde entier » dans l'appli).
 
