@@ -63,7 +63,7 @@ La recherche couvre les annonces de **tous les pays** livrables en France (`ebay
 
 Workflow [.github/workflows/hunt.yml](.github/workflows/hunt.yml) :
 
-- **13h00 (heure de Paris) chaque jour** : `run` (recherche complète). `cron` ne connaît que l'UTC, donc deux déclenchements (11h et 12h UTC) existent et l'étape « Vérifier l'heure » ne garde que celui qui tombe à 13h à Paris, été comme hiver ;
+- **un `run` par jour, vers 13h (heure de Paris)**. GitHub ne garantit pas l'heure des passages planifiés (retards de plusieurs heures constatés) et `cron` ne connaît que l'UTC. Le workflow se déclenche donc toutes les heures de 11h à 20h UTC, et [scripts/should_run.sh](scripts/should_run.sh) ne laisse passer que le **premier déclenchement à 13h Paris ou après**, tant qu'aucun `run` n'a réussi ce jour-là (la date est notée dans la base, clé `last_daily_run`). Si le run échoue, le déclenchement suivant réessaie. Les autres déclenchements s'arrêtent en quelques secondes ;
 - les boutons Telegram sont désactivés (`telegram.buttons: false`) : il n'y a plus de passage `callbacks` automatique. S'ils reviennent, remettre dans le workflow un passage toutes les 4 h (Telegram ne conserve les clics que 24 h) ;
 - la base SQLite est recommitée dans le dépôt après chaque passage (`[skip ci]`).
 

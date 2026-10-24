@@ -292,3 +292,35 @@ def test_message_for_listing_claude_advises_against():
     text = format_listing_message(make_listing(), avoid)
     assert "Prix max conseillé : <b>aucun</b>" in text and "Prix max conseillé : <b>0.00" not in text
     assert "8/100" in text
+
+
+def test_daily_run_records_paris_date_only_when_flag_and_success(tmp_path, monkeypatch):
+    import yaml
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from mba_hunter import main as m
+
+    cfg = load_config() | {"database": {"path": str(tmp_path / "t.db")}}
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(yaml.safe_dump(cfg))
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    monkeypatch.setattr(m.TelegramBot, "process_updates", lambda self, db, wait=0: 0)
+
+    def last():
+        db = Database(tmp_path / "t.db")
+        try:
+            return db.get_kv("last_daily_run")
+        finally:
+            db.close()
+
+    monkeypatch.setattr(m, "hunt", lambda *a, **k: None)
+    assert m.main(["run", "--config", str(cfg_file)]) == 0
+    assert last() is None                                   # run manuel : rien d'enregistré
+    assert m.main(["run", "--daily", "--config", str(cfg_file)]) == 0
+    assert last() == datetime.now(ZoneInfo("Europe/Paris")).date().isoformat()
+
+    Database(tmp_path / "t.db").set_kv("last_daily_run", "2000-01-01")
+    monkeypatch.setattr(m, "hunt", lambda *a, **k: (_ for _ in ()).throw(m.EbayError("panne")))
+    assert m.main(["run", "--daily", "--config", str(cfg_file)]) == 1
+    assert last() == "2000-01-01"                           # échec : la date n'est pas mise à jour

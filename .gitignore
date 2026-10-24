@@ -7,3 +7,4 @@ __pycache__/
 # data/mba_hunter.db est volontairement versionnée : le workflow GitHub Actions
 # la recommite après chaque passage pour garder l'historique entre deux exécutions.
 data/*.db-journal
+.DS_Store

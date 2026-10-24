@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -19,6 +21,7 @@ from .telegram import TelegramBot, TelegramError, format_listing_message
 log = logging.getLogger("mba_hunter")
 
 MAX_CONSECUTIVE_FAILURES = 3
+DAILY_KEY = "last_daily_run"  # lu par scripts/should_run.sh
 
 
 def open_db(config: Dict[str, Any]) -> Database:
@@ -173,6 +176,8 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument("--status", choices=["notified", "validated", "refused", "skipped", "error"],
                         help="list : n'affiche que ce statut")
     parser.add_argument("--config", help="chemin du fichier config.yaml")
+    parser.add_argument("--daily", action="store_true",
+                        help="run : enregistre la date du jour (heure de Paris) une fois le passage terminé sans erreur")
     parser.add_argument("--dry-run", action="store_true", help="affiche les notifications au lieu de les envoyer")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -244,7 +249,9 @@ def main(argv: Optional[list] = None) -> int:
                 hunt(config, db, bot)
             except EbayError as e:
                 log.error("%s", e)
-                return 1
+                return 1  # pas de date enregistrée : un déclenchement suivant réessaiera
+            if args.daily:
+                db.set_kv(DAILY_KEY, datetime.now(ZoneInfo("Europe/Paris")).date().isoformat())
     except KeyboardInterrupt:
         pass
     finally:
